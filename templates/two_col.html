@@ -3,8 +3,11 @@
     <head>
         <style>
     
-            .page_list {
+            ul, .page-list {
                 list-style-type: none;
+            }
+
+            .page-list {
                 margin: 0;
                 padding: 0;
             }
@@ -37,7 +40,6 @@
                 flex-direction: column;
             }
             #currentPage {
-                position: sticky;
                 max-width: 100%;
                 height: auto;
             }
@@ -48,13 +50,27 @@
             .active {
                 display: flex;
             }
+
+            .page-active {
+                display: block;
+            }
             .column {
                 float: left;
                 width: 50%;
+                height: 100%;
                 margin-top: 50px;
+                overflow: scroll;
             }
 
+            body {
+                scrollbar-width: none;
+            }
+            .row, html, body {
+                height: 98%;
+            }
+                
             .row:after {
+                position: static;
                 content: "";
                 display: table;
                 clear: both;
@@ -102,7 +118,7 @@
             <div class="column">
                 <div>
                     {% for page_tree in treeview %}
-                        <ul class="page_list inactive" id="page{{loop.index-1}}">
+                        <ul class="page-list inactive" id="page{{loop.index-1}}">
                             {{page_tree}}
                         </ul>
                     {% endfor %}
@@ -161,11 +177,11 @@
 
             function showTree () {
                 document.getElementById("page" + page).classList.remove('inactive');
-                document.getElementById("page" + page).classList.add('active');
+                document.getElementById("page" + page).classList.add('page-active');
             }
 
             function hideTree () {
-                document.getElementById("page" + page).classList.remove('active');
+                document.getElementById("page" + page).classList.remove('page-active');
                 document.getElementById("page" + page).classList.add('inactive');
             }
 
@@ -188,7 +204,7 @@
 
             for (i = 0; i < toggler.length; i++) {
                 toggler[i].addEventListener("click", function() {
-                    this.parentElement.querySelector(".nested").classList.toggle("active");
+                    this.parentElement.querySelector(".nested").classList.toggle("page-active");
                     this.classList.toggle("caret-down");
                 });
             }
