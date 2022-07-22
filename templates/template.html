@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+
+            ul, #myUL {
+                list-style-type: none;
+            }
+    
+            #myUL {
+                margin: 0;
+                padding: 0;
+            }
+    
+            .caret {
+                cursor: pointer;
+                user-select: none;
+            }
+    
+            .caret::before {
+                content: "\25B6";
+                color: black;
+                display: inline-block;
+                margin-right: 6px;
+            }
+    
+            .caret-down::before {
+                transform: rotate(90deg);
+            }
+    
+            .nested {
+                display: none;
+            }
+    
+            .active {
+                display: block;
+            }
+
+            .column {
+                float: left;
+                width: 50%;
+            }
+
+            .row:after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="row">
+            <div class="column">
+                <ul id="myUL">
+                    {% for page in pages %}
+                    {{ page }}
+                    <br><hr>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="column">
+            </div>
+        </div>
+        <script>
+            var toggler = document.getElementsByClassName("caret");
+            var i;
+
+            for (i = 0; i < toggler.length; i++) {
+                toggler[i].addEventListener("click", function() {
+                    this.parentElement.querySelector(".nested").classList.toggle("active");
+                    this.classList.toggle("caret-down");
+                });
+            }
+        </script>
+    </body>
+</html>

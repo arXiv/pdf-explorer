@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+            .image-list {
+                list-style-type: none;
+                margin: 5;
+                margin-top: 10%;
+                padding: 5;
+                flex-direction: column;
+            }
+            #currentPage {
+                max-width: 100%;
+                height: auto;
+            }
+            .inactive {
+                display: none;
+            }
+    
+            .active {
+                display: flex;
+            }
+            .column {
+                float: left;
+                width: 50%;
+            }
+
+            .row:after {
+                content: "";
+                display: table;
+                clear: both;
+            }
+            .arrow {
+                position: absolute;
+                border: solid black;
+                border-width: 0 10px 10px 0;
+                display: inline-block;
+                padding: 3px;
+                top: 48%;
+            }
+
+            .right {
+                transform: rotate(-45deg);
+                -webkit-transform: rotate(-45deg);
+                right: 20px;
+            }
+
+            .left {
+                transform: rotate(135deg);
+                -webkit-transform: rotate(135deg);
+                left: 20px;
+            }
+
+            .image {
+                max-width: 90%;
+                height: auto;
+            }
+
+            li {
+                padding-top: 50px;
+                padding-bottom: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="row">
+            <div class="column">
+                <div class="arrow left" onclick="previousPage()"></div>
+                <img id="currentPage" src={{first_image}}/>
+                <div class="arrow right" onclick="nextPage()"></div>
+            </div>
+            <div class="column">
+                {% for path, images_data in image_dict.items() %}
+                    {% if images_data %}
+                    <ul class="image-list inactive" id="{{ images_data[0]['page_num'] }}">
+                        {% for image_data in images_data %}
+                        <li>
+                            <img class="image" src="{{ image_data['location'] }}"/>
+                            <br>
+                            <span>Height: {{image_data['height']}}</span>
+                            <span>Width: {{image_data['width']}}</span>
+                            <span>Size (bytes): {{image_data['size']}}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        <script>
+            var page = 0;
+            var image_data = {{ image_dict | tojson }};
+            var image_dir = "{{ image_dir | string }}";
+            var keys = Object.keys(image_data);
+            showImages();
+            function nextPage () {
+                var img = document.getElementById("currentPage");
+                hideImages();
+                page += 1;
+                if (page >= keys.length) {
+                    page = 0;
+                }
+                img.src = image_dir + "/" + page + ".png";
+                showImages();
+            }
+
+            function previousPage () {
+                var img = document.getElementById("currentPage");
+                hideImages();
+                page -= 1;
+                if (page < 0) {
+                    page = (keys.length - 1);
+                }
+                img.src = image_dir + "/" + page + ".png";
+                showImages();
+            }
+
+            function showImages () {
+                if (image_data[page]) {
+                    document.getElementById(page).classList.remove('inactive');
+                    document.getElementById(page).classList.add('active');
+                }
+            }
+
+            function hideImages () {
+                if (image_data[page]) {
+                    document.getElementById(page).classList.remove('active');
+                    document.getElementById(page).classList.add('inactive');
+                }
+            }
+        </script>
+    </body>
+</html>
