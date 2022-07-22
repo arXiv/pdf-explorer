@@ -39,7 +39,7 @@ def generate_two_col (fname):
             continue
         page_num = int(filename.split(".")[0])
         image_dict[page_num] = build_page_images_dict(reader.pages[page_num], page_num, dir)
-    treeview = build_tree_list(reader.pages[0], 1, "")
+    treeview = [build_tree_list(reader.pages[i], 1, "") for i in range(len(reader.pages))]
     f.write(template.render(image_dict=image_dict, first_image=first_image, image_dir=dir, treeview=treeview))
     f.close()
 
