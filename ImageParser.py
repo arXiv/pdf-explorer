@@ -46,7 +46,8 @@ class ImageObject:
                     for obj in xobj['/Resources']['/XObject']:
                         ImageObject.get_xobj_images(xobj['/Resources']['/XObject'][obj], images)
                 else:
-                    raise Exception ("Not an image")
+                    # raise Exception ("Not an image")
+                    print ("Not an image")
             elif xobj['/Subtype'] == '/Image':
                 images.append(ImageObject._xobj_img_2_png(xobj))
             else:
