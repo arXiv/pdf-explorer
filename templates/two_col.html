@@ -2,6 +2,35 @@
 <html>
     <head>
         <style>
+            ul, #myUL {
+                list-style-type: none;
+            }
+    
+            #myUL {
+                margin: 0;
+                padding: 0;
+            }
+    
+            .caret {
+                cursor: pointer;
+                user-select: none;
+            }
+    
+            .caret::before {
+                content: "\25B6";
+                color: black;
+                display: inline-block;
+                margin-right: 6px;
+            }
+    
+            .caret-down::before {
+                transform: rotate(90deg);
+            }
+    
+            .nested {
+                display: none;
+            }
+
             .image-list {
                 list-style-type: none;
                 margin: 5;
@@ -30,6 +59,10 @@
                 display: table;
                 clear: both;
             }
+
+            .horizontal {
+                height: 50%;
+            }
             .arrow {
                 position: absolute;
                 border: solid black;
@@ -56,7 +89,7 @@
                 height: auto;
             }
 
-            li {
+            .image-li {
                 padding-top: 50px;
                 padding-bottom: 50px;
             }
@@ -70,21 +103,28 @@
                 <div class="arrow right" onclick="nextPage()"></div>
             </div>
             <div class="column">
-                {% for path, images_data in image_dict.items() %}
-                    {% if images_data %}
-                    <ul class="image-list inactive" id="{{ images_data[0]['page_num'] }}">
-                        {% for image_data in images_data %}
-                        <li>
-                            <img class="image" src="{{ image_data['location'] }}"/>
-                            <br>
-                            <span>Height: {{image_data['height']}}</span>
-                            <span>Width: {{image_data['width']}}</span>
-                            <span>Size (bytes): {{image_data['size']}}</span>
-                        </li>
-                        {% endfor %}
+                <div class="horizontal">
+                    {% for path, images_data in image_dict.items() %}
+                        {% if images_data %}
+                        <ul class="image-list inactive" id="{{ images_data[0]['page_num'] }}">
+                            {% for image_data in images_data %}
+                            <li class="image-li">
+                                <img class="image" src="{{ image_data['location'] }}"/>
+                                <br>
+                                <span>Height: {{image_data['height']}}</span>
+                                <span>Width: {{image_data['width']}}</span>
+                                <span>Size (bytes): {{image_data['size']}}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="horizontal">
+                    <ul id="myUL">
+                        {{treeview}}
                     </ul>
-                    {% endif %}
-                {% endfor %}
+                </div>
             </div>
         </div>
         <script>
@@ -97,7 +137,7 @@
                 var img = document.getElementById("currentPage");
                 hideImages();
                 page += 1;
-                if (page >= keys.length) {
+                if (page > keys.length) {
                     page = 0;
                 }
                 img.src = image_dir + "/" + page + ".png";
@@ -127,6 +167,16 @@
                     document.getElementById(page).classList.remove('active');
                     document.getElementById(page).classList.add('inactive');
                 }
+            }
+
+            var toggler = document.getElementsByClassName("caret");
+            var i;
+
+            for (i = 0; i < toggler.length; i++) {
+                toggler[i].addEventListener("click", function() {
+                    this.parentElement.querySelector(".nested").classList.toggle("active");
+                    this.classList.toggle("caret-down");
+                });
             }
         </script>
     </body>
