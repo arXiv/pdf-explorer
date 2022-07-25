@@ -1,4 +1,5 @@
 from typing import Dict
+from flask import url_for
 import numpy as np
 from PyPDF2 import PdfReader
 from PyPDF2.filters import _xobj_to_image
@@ -131,7 +132,7 @@ def build_page_images_dict (page, page_num, dir):
             img = Image.open(io.BytesIO(data))
             img.save(new_dir + "/" + str(cur) + ext)
             img_data = {}
-            img_data['location'] = new_dir + "/" + str(cur) + ext
+            img_data['location'] = url_for('static', filename=(new_dir + "/" + str(cur) + ext))
             img_data['height'] = img.height
             img_data['width'] = img.width
             img_data['size'] = len(data)
