@@ -13,12 +13,11 @@ import os
 def get_page_images (fname):
     images = convert_from_path (fname)
     dir = fname[:-4] + "_images"
-    try:
-        os.mkdir(dir)
-    except:
-        print ("Failed to make dir")
-        pass
     abs = f"{os.getcwd()}/static/{dir}"
+    try:
+        os.mkdir(abs)
+    except:
+        pass
     for i in range(len(images)):
         images[i].save(abs+f"/{i}.png")
     return dir
@@ -41,9 +40,9 @@ def generate_two_col (fname):
         if (os.path.isdir(abs + "/" + filename)):
             continue
         page_num = int(filename.split(".")[0])
-        image_dict[page_num] = build_page_images_dict(reader.pages[page_num], page_num, dir)
+        image_dict[page_num] = build_page_images_dict(reader.pages[page_num], page_num, abs)
     treeview = [build_tree_list(reader.pages[i], 1, "") for i in range(len(reader.pages))]
     print (len(image_dict))
-    return template.render(image_dict=image_dict, first_image=first_image, image_dir=dir, treeview=treeview)
+    return template.render(image_dict=image_dict, first_image=first_image, image_dir=f'/static/{dir}', treeview=treeview)
 
 #generate_two_col(sys.argv[1])

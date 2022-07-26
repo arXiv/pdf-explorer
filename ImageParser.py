@@ -100,25 +100,26 @@ class ImageObject:
         
 
 
-reader = PdfReader("2207.07654.pdf")
+# reader = PdfReader("2207.07654.pdf")
 
-c = 0
-for page in range(len(reader.pages)):
-    resources = reader.pages[page]['/Resources']
-    if '/XObject' in resources:
-        a = []
-        ImageObject.get_xobj_images(resources['/XObject'], a)
-        for (ext, data) in a:
-            img = Image.open(io.BytesIO(data))
-            img.save(str(c) + ext)
-            #img.show()
-            c += 1
+# c = 0
+# for page in range(len(reader.pages)):
+#     resources = reader.pages[page]['/Resources']
+#     if '/XObject' in resources:
+#         a = []
+#         ImageObject.get_xobj_images(resources['/XObject'], a)
+#         for (ext, data) in a:
+#             img = Image.open(io.BytesIO(data))
+#             img.save(str(c) + ext)
+#             #img.show()
+#             c += 1
 
 import os
 def build_page_images_dict (page, page_num, dir):
     resources = page['/Resources']
     if '/XObject' in resources:
         new_dir = dir + "/page" + str(page_num)
+        location = dir.split('/')[-1]
         ret = []
         cur = 0
         try:
@@ -132,7 +133,7 @@ def build_page_images_dict (page, page_num, dir):
             img = Image.open(io.BytesIO(data))
             img.save(new_dir + "/" + str(cur) + ext)
             img_data = {}
-            img_data['location'] = url_for('static', filename=(new_dir + "/" + str(cur) + ext))
+            img_data['location'] = url_for('static', filename=(location + '/page' + str(page_num) + "/" + str(cur) + ext))
             img_data['height'] = img.height
             img_data['width'] = img.width
             img_data['size'] = len(data)
