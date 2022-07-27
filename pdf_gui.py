@@ -23,13 +23,15 @@ def get_page_images (fname):
     return dir
 
 
-env = Environment (
-    loader=PackageLoader("pdf_gui"),
-    trim_blocks=True
-)
-template = env.get_template("two_col.html")
+
 
 def generate_two_col (fname):
+    env = Environment (
+    loader=PackageLoader("pdf_gui"),
+    trim_blocks=True
+    )
+    env.filters['commafy'] = lambda x: "{:,}".format(x)
+    template = env.get_template("two_col.html")
     f = open(fname[:-4]+".html", "w+")
     dir = get_page_images (fname)
     abs = f"{os.getcwd()}/static/{dir}"

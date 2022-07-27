@@ -132,9 +132,11 @@
                             <li class="image-li">
                                 <img class="image" src="{{ image_data['location'] }}"/>
                                 <br>
-                                <span>Height: {{image_data['height']}}</span>
-                                <span>Width: {{image_data['width']}}</span>
-                                <span>Size (bytes): {{image_data['size']}}</span>
+                                <span>Height: {{image_data['height'] | commafy}}</span>
+                                <br>
+                                <span>Width: {{image_data['width'] | commafy}}</span>
+                                <br>
+                                <span>Size (bytes): {{image_data['size'] | commafy}}</span>
                             </li>
                             {% endfor %}
                         </ul>
