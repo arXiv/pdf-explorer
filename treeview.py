@@ -2,8 +2,8 @@ import PyPDF2
 from PyPDF2 import PdfFileReader
 from PyPDF2.generic import *
 
-reader = PdfFileReader("2207.05758.pdf")
-list(reader.pages)
+# reader = PdfFileReader("2207.05758.pdf")
+# list(reader.pages)
 
 def replace_indirect_objects (obj):
     #print (f"{obj}, {type(obj)}")
@@ -81,7 +81,7 @@ def generate_html (page_tree, fname):
     f.close()
 
 # generate_html (reader.pages, "2207.07175.html")
-t = reader.pages[0]["/Contents"]
+# t = reader.pages[0]["/Contents"]
 #print (replace_indirect_objects(t))
 #print (reader.cache_get_indirect_object(t.generation, t.idnum))
 #c=0

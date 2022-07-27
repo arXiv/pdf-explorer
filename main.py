@@ -11,7 +11,7 @@ def home ():
 
 @app.route('/upload')
 def upload ():
-    return render_template('upload_page.html')
+    return render_template('upload_page.html', uploader_address=url_for('file_uploader'))
 
 @app.route('/uploader', methods=['GET', 'POST'])
 def file_uploader ():
@@ -26,4 +26,5 @@ def explorer (doc_id):
     return generate_two_col(doc_id)
 
 if __name__== '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')
+

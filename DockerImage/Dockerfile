@@ -17,11 +17,14 @@ RUN pip install numpy
 RUN pip install pillow
 RUN pip install pdf2image
 RUN pip install python-poppler
+RUN pip install gunicorn
+RUN mkdir static
 
 COPY ./templates ./templates
 COPY ImageParser.py .
 COPY main.py .
 COPY pdf_gui.py .
 COPY treeview.py .
+COPY entry_point.py .
 
-CMD [ "python3", "main.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "entry_point:app"]
