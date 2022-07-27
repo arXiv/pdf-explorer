@@ -22,8 +22,10 @@ def get_page_images (fname):
         images[i].save(abs+f"/{i}.png")
     return dir
 
-
-
+def get_bboxes (fname, page_num):
+    page = PdfFileReader(fname).pages[page_num]
+    if '/XObject' in page['/Resources']:
+        xobj_bbox = page['/Resources']['/XObject']['/BBox']
 
 def generate_two_col (fname):
     env = Environment (
