@@ -11,14 +11,86 @@ class Graphics:
         ret[2, 2] = 1
         return ret
 
+    def gs_param_dict_convert (ext_gs):
+        if '/Type' in ext_gs:
+            assert ext_gs['/Type'] == '/ExtGState'
+        key_vals = []
+        for key in ext_gs.keys():
+            if key == '/LW':
+                key_vals.append(('line_width', float(ext_gs['/LW'])))
+            elif key == '/LC':
+                key_vals.append(('line_cap', int(ext_gs['/LC'])))
+            elif key == '/LJ':
+                key_vals.append(('line_join', int(ext_gs['/LJ'])))
+            elif key == '/ML':
+                key_vals.append(('miter_limit', float(ext_gs['/ML'])))
+            elif key == '/D':
+                key_vals.append(('dash_pattern', (ext_gs['/D'][0], ext_gs['/D'][1]))) # TODO cast types here
+            elif key == '/RI':
+                key_vals.append(('rendering_intent', ext_gs['/RI']))
+            elif key == '/OP':
+                if '/op' in ext_gs:
+                    key_vals.append(('overprint', True if ext_gs['/OP'] == 'true' else False))
+                else: # Should do something different if both keys are there, but for now just do the same thing
+                    key_vals.append(('overprint', True if ext_gs['/OP'] == 'true' else False))
+            elif key == '/op':
+                key_vals.append(('overprint', True if ext_gs['/op'] == 'true' else False))
+            elif key == '/OPM':
+                key_vals.append(('overprint_mode', float(ext_gs['/OPM'])))
+            elif key == '/Font':
+                # DEAL WITH THIS LATER
+                pass
+            elif key == '/BG':
+                # DEAL WITH THIS LATER - read about functions in pdf
+                pass
+            elif key == '/BG2':
+                pass
+            elif key == '/UCR':
+                pass
+            elif key == '/UCR2':
+                pass
+            elif key == '/TR':
+                pass
+            elif key == '/TR2':
+                pass
+            elif key == '/HT':
+                pass
+            elif key == '/FL':
+                key_vals.append(('flatness', float(ext_gs['/FL'])))
+            elif key == '/SM':
+                key_vals.append(('smoothness', float(ext_gs['/SM'])))
+            elif key == '/SA':
+                key_vals.append(('stroke_adjustment', True if ext_gs['/SA'] == 'true' else False))
+            elif key == '/BM':
+                key_vals.append(('blend_mode', ext_gs['/BM'])) # Will need to handle the case that it's an array
+            elif key == '/SMask':
+                key_vals.append(('soft_mask', ext_gs('/SMask'))) # Will need to type cast
+            elif key == '/CA':
+                key_vals.append(('alpha_constant_stroking', float(ext_gs('/CA'))))
+            elif key == '/ca':
+                key_vals.append(('alpha_constant_non_stroking', float(ext_gs('/ca'))))
+            elif key == '/AIS':
+                key_vals.append(('alpha_source', True if ext_gs['/AIS'] == 'true' else False))
+            elif key == 'TK':
+                # This is for text knockout, which is part of the text state
+                # I am hoping to add dictionary style indexing to the graphics state object
+                # When a key is not in the dictionary, it will check the text state dictionary for a smooth experience
+                pass
+            else:
+                raise Exception ("Not a valid ExtGState key")
+
+
+               
+
+
+
 class GraphicsState:
 
     def __init__ (self):
 
+        self.current_resource_dict = {}
         self.state = {
-
             ### These are device independent ###
-
             "CTM" : Graphics.pdf_transformation_to_matrix([1, 0, 0, 1, 0, 0]), # Current transformation matrix- initialized to the identity matrix
             "clipping_path" : 0, # TODO: Should be the boundary of the entire imageable portion of the output page, not entirely sure of type
             "color_space" : 'DeviceGray', # Maybe make an enum however you do that in python
@@ -31,13 +103,12 @@ class GraphicsState:
             "dash_pattern" : ([], 0), # This represents a solid line
             "rendering_intent" : '/RelativeColorimetric', # Technically a name, not a string. Should define a type alias probably
             "stroke_adjustment" : False,
-            "blend_mode" : ('/Normal', None), # Type is name OR array. Make discriminated union? probably doesn't matter too much, though
+            "blend_mode" : '/Normal', # Type is name OR array. Make discriminated union? probably doesn't matter too much, though
             "soft_mask" : (None, '/None'), # Dictionary OR name ^
-            "alpha_constant" : 1.0,
+            "alpha_constant_stroking" : 1.0,
+            "alpha_constant_non_stroking" : 1.0,
             "alpha_source" : False,
-
             ### These are device dependent ###
-
             "overprint" : False,
             "overprint_mode" : 0,
             "black_generation" : None, # This should be a function, but no idea what yet. Not very important
@@ -47,7 +118,6 @@ class GraphicsState:
             "flatness" : 1.0,
             "smoothness" : 0 # Shouldn't necessarily be 0 for slower machines. 0 Should be fine for what we are doing, though
         }
-
         self.stack = [self.state]
 
     def q (self): # q operator- push a copy of the entire state onto the stack
@@ -81,13 +151,18 @@ class GraphicsState:
     def i (self, new_flatness: float): # update flatness tolerance
         self.update_state('flatness', new_flatness)
 
-    def gs (self): # update specified params in graphics state 
-        # TODO
-        pass
+    def gs (self, dict_name: str): # update specified params in graphics state 
+        for key, val in self.current_resource_dict['/ExtGState']:
+            self.update_state(key, val)
+        # This is basically pseudocode. Will need to look into this more deeply later
+        # Reference page 128 https://opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf
 
 
     def update_state (self, key, value):
         self.stack[-1][key] = value
+
+    def get_value (self, key):
+        return self.stack[-1][key]
         
 
 
@@ -146,5 +221,8 @@ a = [1, 0, 0, 1, 5, 5]
 # print (Graphics.pdf_transformation_to_matrix(a))
 
 gs = GraphicsState()
+gs.q()
 gs.cm (a)
-print (gs.state['CTM'])
+print (gs.get_value('CTM'))
+gs.Q()
+print (gs.get_value('CTM'))
