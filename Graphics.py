@@ -7,6 +7,13 @@ import zlib
 
 class Graphics:
 
+    toks = {
+        'cm' : re.compile(b'((?:\d+(?:\.\d+)?\s+){6})cm', re.S), # captures the numbers as one group, need to split and cast to ints
+        'Do' : re.compile(b'(\/\S+)\sDo', re.S), # captures the name object
+        'Q' : re.compile(b'Q', re.S),
+        'q' : re.compile(b'q', re.S)
+    }
+
     def pdf_transformation_to_matrix (pdf_transformation):
         assert len(pdf_transformation) == 6
         ret = np.zeros((3, 3), dtype=float)
@@ -81,6 +88,7 @@ class Graphics:
                 pass
             else:
                 raise Exception ("Not a valid ExtGState key")
+    
 
 
                
@@ -254,6 +262,49 @@ class PDF:
             match = re.search(self.toks['stream_data'], stream)
         return zlib.decompress(match.group(1).strip(b'\r\n')).decode('UTF-8')
 
+    def get_image_bboxes (self):
+        self.file.seek(0, 0)
+        bboxes = {}
+        stream_matches = re.finditer(self.toks['stream_data'], self.file.read())
+        def filter_late (match, index): # Filter out any instances that come after the do operator
+            return match.start() < index
+        for stream in stream_matches:
+            self.file.seek(stream.start())
+            try:
+                data = zlib.decompress(stream.group(1).strip(b'\r\n'))#.decode('UTF-8')
+            except:
+                print (stream.group(1))
+                continue
+            ims = re.finditer(Graphics.toks['Do'], data)
+            if not ims:
+                continue
+            for image in ims:
+                ops = []
+                self.graphics_state = GraphicsState()
+                name = image.group(1)
+                self.file.seek(image.start())
+                self.seek_stream_start()
+                do_index = image.start() - stream.start()
+                for q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['q'], data)):
+                    ops.append((q, 'q'))
+                for Q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['Q'], data)):
+                    ops.append((Q, 'Q'))
+                for cm in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['cm'], data)):
+                    ops.append((cm, 'cm'))
+                ops.sort(key = lambda t: t[0].start())
+                for op in ops:
+                    if op[1] == 'q':
+                        self.graphics_state.q()
+                    elif op[1] == 'Q':
+                        self.graphics_state.Q()
+                    else:
+                        cg = op[0].group(1)
+                        print (cg)
+                        arr = list(map(lambda x: float(x), cg.split()))
+                        self.graphics_state.cm(arr)
+                bboxes[name] = self.graphics_state.state['CTM']
+        return bboxes
+
 
 
 """
@@ -309,13 +360,15 @@ class PDF:
 
 pdf = PDF('2207.06409.pdf')
 #pdf.seek_stream_start()
-for i in range(10):
-    pdf.file.readline()
+# for i in range(10):
+#     pdf.file.readline()
 
-# print ("### BACKWARD ###")
+# # print ("### BACKWARD ###")
 
-# for i in range(8):
-#     print (f"{i}. {pdf._read_previous_line()}")
+# # for i in range(8):
+# #     print (f"{i}. {pdf._read_previous_line()}")
 
-pdf.seek_stream_start()
-print (pdf.get_stream_data())
+# pdf.seek_stream_start()
+# print (pdf.get_stream_data())
+
+print (pdf.get_image_bboxes())
