@@ -1,6 +1,9 @@
 from PyPDF2 import PdfFileReader
 import numpy as np
 import copy
+from io import BytesIO
+import re
+import zlib
 
 class Graphics:
 
@@ -171,14 +174,86 @@ class GraphicsState:
 class PDF:
 
     def __init__ (self, fname):
-        self.reader = PdfFileReader(fname)
+        self.file = BytesIO(open(fname, "rb").read())
+        #self.reader = PdfFileReader(fname)
         self.graphics_state = GraphicsState()
+
+        self._fp = 0
+        self._block_size = 4096
+        self.toks = {
+            "stream": re.compile(b'stream', re.S),
+            "endstream": re.compile(b'endstream', re.S),
+            "stream_data": re.compile(b'stream([\s\S]*?)endstream')
+        }
 
     def get_indirect_obj (self, obj_num, generation):
         pass
 
     def get_graphics_state (self):
         pass
+
+    def _read_backwards (self, size):
+        if self.file.tell() < size:
+            raise Exception ("Can't read past the beginning") # TODO: Make better exceptions
+        self.file.seek(-size, 1)
+        ret = self.file.read(size)
+        self.file.seek(-size, 1)
+        return ret
+    
+    def _read_previous_line(self): # Pretty much yanked from PyPDF2 PdfFileReader.read_previous_line, I added the eol stuff so that it behaves
+        line = []
+        new_line = False
+        at_eol = False
+        if self.file.tell() == 0:
+            raise Exception("Can't read past the beginning")
+        self.file.seek(-1, 1)
+        if self.file.read(1) in b'\r\n':
+            at_eol = True
+        while True:
+            size = min(self._block_size, self.file.tell())
+            if size == 0:
+                break
+            block = self._read_backwards(size)
+            if at_eol:
+                cur = len(block) - 2
+            else:
+                cur = len(block) - 1
+            if not new_line:
+                while cur >= 0 and block[cur] not in b'\r\n':
+                    cur -= 1
+                if cur >= 0:
+                    new_line = True
+            if new_line:
+                if at_eol:
+                    line.append(block[cur+1:-1])
+                else:
+                    line.append(block[cur+1:])
+                while cur >= 0 and block[cur] in b'\r\n':
+                    cur -= 1
+            else:
+                line.append(block)
+            if cur >= 0:
+                self.file.seek(cur+1, 1)
+                break
+        return b"".join(line[::-1])
+
+    def seek_stream_start (self): 
+        size = min(self._block_size, self.file.tell())
+        match = re.search(self.toks['stream'], self._read_backwards(size))
+        while not match:
+            size = min(self._block_size, self.file.tell())
+            match = re.search(self.toks['stream'], self._read_backwards(size))
+        self.file.seek(match.start(), 1)
+
+    def get_stream_data (self):
+        stream = b''
+        stream += self.file.read(self._block_size)
+        match = re.search(self.toks['stream_data'], stream)
+        while not match:
+            stream += self.file.read(2 * self._block_size)
+            match = re.search(self.toks['stream_data'], stream)
+        return zlib.decompress(match.group(1).strip(b'\r\n')).decode('UTF-8')
+
 
 
 """
@@ -214,15 +289,33 @@ class PDF:
 
 # Graphics state is a stack
 
+# Occurrences of the q and Q operators shall be balanced within a given content stream
+# ^ this means that when we 'Do' an XObject, we can just search through the same content stream for all 
+# occurrences of operators that change the gs, and then calculate where the image will be rendered
+# from the gs right before 'Do'
+
 ***************
 """
 
-a = [1, 0, 0, 1, 5, 5]
+# a = [1, 0, 0, 1, 5, 5]
 # print (Graphics.pdf_transformation_to_matrix(a))
 
-gs = GraphicsState()
-gs.q()
-gs.cm (a)
-print (gs.get_value('CTM'))
-gs.Q()
-print (gs.get_value('CTM'))
+# gs = GraphicsState()
+# gs.q()
+# gs.cm (a)
+# print (gs.get_value('CTM'))
+# gs.Q()
+# print (gs.get_value('CTM'))
+
+pdf = PDF('2207.06409.pdf')
+#pdf.seek_stream_start()
+for i in range(10):
+    pdf.file.readline()
+
+# print ("### BACKWARD ###")
+
+# for i in range(8):
+#     print (f"{i}. {pdf._read_previous_line()}")
+
+pdf.seek_stream_start()
+print (pdf.get_stream_data())
