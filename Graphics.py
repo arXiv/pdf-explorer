@@ -21,6 +21,9 @@ class Graphics:
         ret[2, 2] = 1
         return ret
 
+    def img_spc_to_usr_spc (height, width):
+        return Graphics.pdf_transformation_to_matrix([1/width, 0, 0, -1/height, 0, 1])
+
     def gs_param_dict_convert (ext_gs):
         if '/Type' in ext_gs:
             assert ext_gs['/Type'] == '/ExtGState'
@@ -100,7 +103,7 @@ class GraphicsState:
     def __init__ (self):
 
         self.current_resource_dict = {}
-        self.state = {
+        self._init_state = {
             ### These are device independent ###
             "CTM" : Graphics.pdf_transformation_to_matrix([1, 0, 0, 1, 0, 0]), # Current transformation matrix- initialized to the identity matrix
             "clipping_path" : 0, # TODO: Should be the boundary of the entire imageable portion of the output page, not entirely sure of type
@@ -129,7 +132,7 @@ class GraphicsState:
             "flatness" : 1.0,
             "smoothness" : 0 # Shouldn't necessarily be 0 for slower machines. 0 Should be fine for what we are doing, though
         }
-        self.stack = [self.state]
+        self.stack = [self._init_state]
 
     def q (self): # q operator- push a copy of the entire state onto the stack
         new_state = copy.deepcopy(self.stack[-1])
@@ -139,7 +142,7 @@ class GraphicsState:
         self.stack.pop()
 
     def cm (self, mat: list[float]): # update CTM by concatenating new transformation mat
-        self.update_state('CTM', np.matmul(self.state['CTM'], Graphics.pdf_transformation_to_matrix(mat)))
+        self.update_state('CTM', np.matmul(self.get_value('CTM'), Graphics.pdf_transformation_to_matrix(mat)))
 
     def w (self, new_width: float): # update line width
         self.update_state('line_width', new_width)
@@ -191,7 +194,7 @@ class PDF:
         self.toks = {
             "stream": re.compile(b'stream', re.S),
             "endstream": re.compile(b'endstream', re.S),
-            "stream_data": re.compile(b'stream([\s\S]*?)endstream')
+            "stream_data": re.compile(b'stream([\s\S]*?)endstream', re.S)
         }
 
     def get_indirect_obj (self, obj_num, generation):
@@ -262,51 +265,47 @@ class PDF:
             match = re.search(self.toks['stream_data'], stream)
         return zlib.decompress(match.group(1).strip(b'\r\n')).decode('UTF-8')
 
-    def get_image_bboxes (self):
-        self.file.seek(0, 0)
+    def get_image_bbox (self):
         bboxes = {}
-        stream_matches = re.finditer(self.toks['stream_data'], self.file.read())
         def filter_late (match, index): # Filter out any instances that come after the do operator
             return match.start() < index
-        for stream in stream_matches:
-            self.file.seek(stream.start())
-            try:
-                data = zlib.decompress(stream.group(1).strip(b'\r\n'))#.decode('UTF-8')
-            except:
-                print (stream.group(1))
-                continue
-            ims = re.finditer(Graphics.toks['Do'], data)
-            if not ims:
-                continue
-            for image in ims:
-                ops = []
-                self.graphics_state = GraphicsState()
-                name = image.group(1)
-                self.file.seek(image.start())
-                self.seek_stream_start()
-                do_index = image.start() - stream.start()
-                for q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['q'], data)):
-                    ops.append((q, 'q'))
-                for Q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['Q'], data)):
-                    ops.append((Q, 'Q'))
-                for cm in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['cm'], data)):
-                    ops.append((cm, 'cm'))
-                ops.sort(key = lambda t: t[0].start())
-                for op in ops:
-                    if op[1] == 'q':
-                        self.graphics_state.q()
-                    elif op[1] == 'Q':
-                        self.graphics_state.Q()
-                    else:
-                        cg = op[0].group(1)
-                        print (cg)
-                        arr = list(map(lambda x: float(x), cg.split()))
-                        self.graphics_state.cm(arr)
-                bboxes[name] = self.graphics_state.state['CTM']
+        stream = re.search(self.toks['stream_data'], self.file.read()) # TODO: write re to extract length object and only load that into memory
+        data = zlib.decompress(stream.group(1).strip(b'\r\n'))
+        ims = re.finditer(Graphics.toks['Do'], data)
+        for image in ims:
+            ops = []
+            self.graphics_state = GraphicsState()
+            name = image.group(1)
+            self.file.seek(image.start())
+            self.seek_stream_start()
+            do_index = image.start() - stream.start()
+            for q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['q'], data)):
+                ops.append((q, 'q'))
+            for Q in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['Q'], data)):
+                ops.append((Q, 'Q'))
+            for cm in filter(lambda x: filter_late(x, do_index), re.finditer(Graphics.toks['cm'], data)):
+                ops.append((cm, 'cm'))
+            ops.sort(key = lambda t: t[0].start())
+            for op in ops:
+                if op[1] == 'q':
+                    self.graphics_state.q()
+                elif op[1] == 'Q':
+                    self.graphics_state.Q()
+                else:
+                    cg = op[0].group(1)
+                    print (cg)
+                    print (f"{name} BEFORE: ")
+                    print(self.graphics_state.get_value('CTM'))
+                    arr = list(map(lambda x: float(x), cg.split()))
+                    self.graphics_state.cm(arr)
+                    print (f"{name} AFTER: ")
+                    print(self.graphics_state.get_value('CTM'))
+            if name not in bboxes:
+                bboxes[name] = self.graphics_state.get_value('CTM')
+            else:
+                print ("Got here: ")
+                print (bboxes[name])
         return bboxes
-
-
-
 """
 *****NOTES*****
 
@@ -345,6 +344,9 @@ class PDF:
 # occurrences of operators that change the gs, and then calculate where the image will be rendered
 # from the gs right before 'Do'
 
+# The implicit transformation from image space to
+# user space, if specified explicitly, would be described by the matrix [ (1/w) 0 0 (-1/h) 0 1 ]
+
 ***************
 """
 
@@ -371,4 +373,9 @@ pdf = PDF('2207.06409.pdf')
 # pdf.seek_stream_start()
 # print (pdf.get_stream_data())
 
-print (pdf.get_image_bboxes())
+# for i in range(8):
+#     pdf.file.readline()
+
+# pdf.seek_stream_start()
+# print (pdf.get_image_bbox())
+
