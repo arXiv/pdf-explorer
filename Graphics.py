@@ -21,8 +21,9 @@ class Graphics:
         ret[2, 2] = 1
         return ret
 
-    def img_spc_to_usr_spc (height, width):
-        return Graphics.pdf_transformation_to_matrix([1/width, 0, 0, -1/height, 0, 1])
+    def ctm_to_bounding_box(ctm, width, height):
+        assert ctm.shape == (3, 3)
+        return [ctm[2, 0], ctm[2, 1], width, height]
 
     def gs_param_dict_convert (ext_gs):
         if '/Type' in ext_gs:
@@ -194,14 +195,39 @@ class PDF:
         self.toks = {
             "stream": re.compile(b'stream', re.S),
             "endstream": re.compile(b'endstream', re.S),
-            "stream_data": re.compile(b'stream([\s\S]*?)endstream', re.S)
+            "stream_data": re.compile(b'stream([\s\S]*?)endstream', re.S),
+            "indirect_object": re.compile(b'\/\S+\s(\d+)\s0\sR', re.S),
+            "page_dict": re.compile(b'<<([\s\S]*\/Type\s\/Page[\s\S]*)', re.S),
+            "xobj_dict": re.compile(b'<<([\s\S]*\/Type\s\/XObject[\s\S]*)>>', re.S)
         }
 
-    def get_indirect_obj (self, obj_num, generation):
-        pass
+    def get_image_id (self, name, data):
+        spot = self.file.tell()
+        self.file.seek(0, 0)
+        pattern = b"\/"+name[1:]+b"\s\d+\s0\sR"
+        a = re.findall(pattern, self.file.read())
+        print (a)
+        id = a[0] # Use xref table or something in future
+        self.file.seek(spot, 0)
+        return id
 
-    def get_graphics_state (self):
-        pass
+    def get_dimensions (self, name, image_id=-1, data=None):
+        spot = self.file.tell()
+        if image_id == -1:
+            if data == None:
+                raise Exception ("Must supply dictionary to search")
+            image_id = self.get_image_id(name, data)
+        w_pattern = bytes(image_id)+b'\s0\sobj[\s\S]+<<[\s\S]+\/Width\s(\d+)'
+        h_pattern = bytes(image_id)+b'\s0\sobj[\s\S]+<<[\s\S]+\/Height\s(\d+)'
+        width = re.findall(bytes(w_pattern), self.file.read())[0]
+        self.file.seek(0, 0)
+        height = re.findall(bytes(h_pattern), self.file.read())[0] # Lol do better later
+        self.file.seek(spot, 0)
+        return (width, height)
+
+
+    def get_xobj_metadata ():
+
 
     def _read_backwards (self, size):
         if self.file.tell() < size:
@@ -293,18 +319,10 @@ class PDF:
                     self.graphics_state.Q()
                 else:
                     cg = op[0].group(1)
-                    print (cg)
-                    print (f"{name} BEFORE: ")
-                    print(self.graphics_state.get_value('CTM'))
                     arr = list(map(lambda x: float(x), cg.split()))
                     self.graphics_state.cm(arr)
-                    print (f"{name} AFTER: ")
-                    print(self.graphics_state.get_value('CTM'))
-            if name not in bboxes:
-                bboxes[name] = self.graphics_state.get_value('CTM')
-            else:
-                print ("Got here: ")
-                print (bboxes[name])
+            bboxes[name] = self.graphics_state.get_value('CTM')
+            print (f"{name} dimensions: {self.get_dimensions(name)}")
         return bboxes
 """
 *****NOTES*****
@@ -350,15 +368,6 @@ class PDF:
 ***************
 """
 
-# a = [1, 0, 0, 1, 5, 5]
-# print (Graphics.pdf_transformation_to_matrix(a))
-
-# gs = GraphicsState()
-# gs.q()
-# gs.cm (a)
-# print (gs.get_value('CTM'))
-# gs.Q()
-# print (gs.get_value('CTM'))
 
 pdf = PDF('2207.06409.pdf')
 #pdf.seek_stream_start()
@@ -373,9 +382,9 @@ pdf = PDF('2207.06409.pdf')
 # pdf.seek_stream_start()
 # print (pdf.get_stream_data())
 
-# for i in range(8):
-#     pdf.file.readline()
+for i in range(8):
+    print (pdf.file.readline())
 
-# pdf.seek_stream_start()
-# print (pdf.get_image_bbox())
+pdf.seek_stream_start()
+#print (pdf.get_image_bbox())
 
