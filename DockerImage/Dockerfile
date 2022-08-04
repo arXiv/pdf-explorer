@@ -24,7 +24,9 @@ COPY ./templates ./templates
 COPY ImageParser.py .
 COPY main.py .
 COPY pdf_gui.py .
+COPY SummaryPage.py .
 COPY treeview.py .
 COPY entry_point.py .
+COPY ./static/charts.min.css ./static
 
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "entry_point:app"]

@@ -29,8 +29,8 @@ def get_bboxes (fname, page_num):
 
 def generate_two_col (fname):
     env = Environment (
-    loader=PackageLoader("pdf_gui"),
-    trim_blocks=True
+        loader=PackageLoader("pdf_gui"),
+        trim_blocks=True
     )
     env.filters['commafy'] = lambda x: "{:,}".format(x)
     template = env.get_template("two_col.html")

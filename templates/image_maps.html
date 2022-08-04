@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style>
+    
+            ul, .page-list {
+                list-style-type: none;
+            }
+
+            .page-list {
+                margin: 0;
+                padding: 0;
+            }
+    
+            .caret {
+                cursor: pointer;
+                user-select: none;
+            }
+    
+            .caret::before {
+                content: "\25B6";
+                color: black;
+                display: inline-block;
+                margin-right: 6px;
+            }
+    
+            .caret-down::before {
+                transform: rotate(90deg);
+            }
+    
+            .nested {
+                display: none;
+            }
+
+            .image-list {
+                list-style-type: none;
+                margin: 5;
+                margin-top: 10%;
+                padding: 5;
+                flex-direction: column;
+            }
+            #currentPage {
+                max-width: 100%;
+                height: auto;
+            }
+            .inactive {
+                display: none;
+            }
+    
+            .active {
+                display: flex;
+            }
+
+            .page-active {
+                display: block;
+            }
+            .column {
+                float: left;
+                width: 50%;
+                height: 100%;
+                margin-top: 50px;
+                overflow: scroll;
+            }
+
+            body {
+                scrollbar-width: none;
+            }
+            .row, html, body {
+                height: 98%;
+            }
+                
+            .row:after {
+                position: static;
+                content: "";
+                display: table;
+                clear: both;
+            }
+
+            .arrow {
+                position: absolute;
+                border: solid black;
+                border-width: 0 10px 10px 0;
+                display: inline-block;
+                padding: 3px;
+                top: 48%;
+            }
+
+            .right {
+                transform: rotate(-45deg);
+                -webkit-transform: rotate(-45deg);
+                right: 20px;
+            }
+
+            .left {
+                transform: rotate(135deg);
+                -webkit-transform: rotate(135deg);
+                left: 20px;
+            }
+
+            .image {
+                max-width: 90%;
+                height: auto;
+            }
+
+            .image-li {
+                padding-top: 50px;
+                padding-bottom: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="row">
+            <div class="column">
+                <div class="arrow left" onclick="previousPage()"></div>
+                <img id="currentPage" src={{ first_image }}/>
+                <div class="arrow right" onclick="nextPage()"></div>
+            </div>
+            <div class="column">
+                <div>
+                    {% for page_tree in treeview %}
+                        <ul class="page-list inactive" id="page{{loop.index-1}}">
+                            {{page_tree}}
+                        </ul>
+                    {% endfor %}
+                </div>
+                <hr>
+                <div>
+                    {% for path, images_data in image_dict.items() %}
+                        {% if images_data %}
+                        <ul class="image-list inactive" id="{{ images_data[0]['page_num'] }}">
+                            {% for image_data in images_data %}
+                            <li class="image-li">
+                                <img class="image" src="{{ image_data['location'] }}"/>
+                                <br>
+                                <span>Height: {{image_data['height'] | commafy}}</span>
+                                <br>
+                                <span>Width: {{image_data['width'] | commafy}}</span>
+                                <br>
+                                <span>Size (bytes): {{image_data['size'] | commafy}}</span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <script>
+            var page = 0;
+            var image_data = {{ image_dict | tojson }};
+            var image_dir = "{{ image_dir | string }}";
+            var keys = Object.keys(image_data);
+            showImages();
+            showTree();
+            function nextPage () {
+                var img = document.getElementById("currentPage");
+                hideImages();
+                hideTree();
+                page += 1;
+                if (page > keys.length-1) {
+                    page = 0;
+                }
+                img.src = image_dir + "/" + page + ".png";
+                showTree();
+                showImages();
+            }
+
+            function previousPage () {
+                var img = document.getElementById("currentPage");
+                hideImages();
+                hideTree();
+                page -= 1;
+                if (page < 0) {
+                    page = (keys.length - 1);
+                }
+                img.src = image_dir + "/" + page + ".png";
+                showTree();
+                showImages();
+            }
+
+            function showTree () {
+                document.getElementById("page" + page).classList.remove('inactive');
+                document.getElementById("page" + page).classList.add('page-active');
+            }
+
+            function hideTree () {
+                document.getElementById("page" + page).classList.remove('page-active');
+                document.getElementById("page" + page).classList.add('inactive');
+            }
+
+            function showImages () {
+                if (image_data[page]) {
+                    document.getElementById(page).classList.remove('inactive');
+                    document.getElementById(page).classList.add('active');
+                }
+            }
+
+            function hideImages () {
+                if (image_data[page]) {
+                    document.getElementById(page).classList.remove('active');
+                    document.getElementById(page).classList.add('inactive');
+                }
+            }
+
+            var toggler = document.getElementsByClassName("caret");
+            var i;
+
+            for (i = 0; i < toggler.length; i++) {
+                toggler[i].addEventListener("click", function() {
+                    this.parentElement.querySelector(".nested").classList.toggle("page-active");
+                    this.classList.toggle("caret-down");
+                });
+            }
+        </script>
+    </body>
+</html>

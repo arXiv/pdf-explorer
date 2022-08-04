@@ -2,6 +2,7 @@ import flask
 from flask import Flask, render_template, request, url_for, redirect
 from werkzeug.utils import secure_filename
 from pdf_gui import generate_two_col
+from SummaryPage import build_summary_page
 
 app = Flask(__name__)
 
@@ -19,7 +20,12 @@ def file_uploader ():
         f = request.files['file']
         sec_fname = secure_filename(f.filename)
         f.save(sec_fname)
-        return redirect(url_for('explorer', doc_id=sec_fname))
+        #return redirect(url_for('explorer', doc_id=sec_fname))
+        return redirect(url_for('summary_page', doc_id=sec_fname))
+
+@app.route('/summary/<string:doc_id>')
+def summary_page (doc_id):
+    return build_summary_page(doc_id, url_for('explorer', doc_id=doc_id))
 
 @app.route('/explorer/<string:doc_id>')
 def explorer (doc_id):

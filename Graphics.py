@@ -200,6 +200,30 @@ class PDF:
             "page_dict": re.compile(b'<<([\s\S]*\/Type\s\/Page[\s\S]*)', re.S),
             "xobj_dict": re.compile(b'<<([\s\S]*\/Type\s\/XObject[\s\S]*)>>', re.S)
         }
+    
+    def search_for_regex(self, exp, save_spot=False):
+        eof = False
+        spot = self.file.tell()
+        read_data = b''
+        block = self.file.read(self._block_size)
+        if len(block) != self._block_size:
+            eof = True
+        read_data += block
+        match = re.search(exp, read_data)
+        while not match and not eof:
+            block = self.file.read(self._block_size)
+            if len(block) != self._block_size:
+                eof = True
+            read_data += block
+            match = re.search(self.toks['stream_data'], read_data)
+        if not match:
+            raise Exception ("No match found in file")
+        if save_spot:
+            self.file.seek(spot, 0)
+        else:
+            self.file.seek(spot, 0)
+            self.file.seek(match.start(), 1)
+        return match
 
     def get_image_id (self, name, data):
         spot = self.file.tell()
@@ -227,7 +251,10 @@ class PDF:
 
 
     def get_xobj_metadata ():
+        pass
 
+    def get_page_resource_dictionary ():
+        pass
 
     def _read_backwards (self, size):
         if self.file.tell() < size:
@@ -237,7 +264,7 @@ class PDF:
         self.file.seek(-size, 1)
         return ret
     
-    def _read_previous_line(self): # Pretty much yanked from PyPDF2 PdfFileReader.read_previous_line, I added the eol stuff so that it behaves
+    def _read_previous_line(self):
         line = []
         new_line = False
         at_eol = False
@@ -382,9 +409,10 @@ pdf = PDF('2207.06409.pdf')
 # pdf.seek_stream_start()
 # print (pdf.get_stream_data())
 
-for i in range(8):
-    print (pdf.file.readline())
+# for i in range(8):
+#     print (pdf.file.readline())
 
-pdf.seek_stream_start()
+# pdf.seek_stream_start()
 #print (pdf.get_image_bbox())
 
+print (pdf.search_for_regex(pdf.toks['xobj_dict']).group(1))

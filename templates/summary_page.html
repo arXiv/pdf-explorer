@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="/static/charts.min.css">
+        <style>
+            #page-chart.bar {
+                max-width: 100%;
+                height: {{50 * page_sizes|length}}px;
+                margin: 0 auto;
+            }              
+        </style>
+    </head>
+    <body>
+        <table class="charts-css bar show-4-secondary-axes show-labels" id="page-chart">
+            <tbody>
+                {% for page_num, size in page_sizes.items() %}
+                {% if size > 0 %}
+                <tr>
+                    <th scope="row">Page {{ page_num + 1 }} </th>
+                    <td style="--size: {{ size }};padding-right:10px;">{{(size * largest)|round|int|commafy}} bytes </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+        <form action={{explorer_page}} method ="GET">
+            <input type="submit" value="Explorer">
+         </form>   
+    </body>
+</html>
