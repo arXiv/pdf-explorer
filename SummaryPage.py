@@ -87,4 +87,4 @@ def build_summary_page(fname, url):
     for i in range(len(reader.pages)):
         page_img_lens[i] = get_page_images_size(reader, i)
     page_sizes, largest = normalize_page_image_sizes(page_img_lens)
-    return template.render(page_sizes=page_sizes, largest=largest, explorer_page=url)
+    return template.render(page_sizes=page_sizes, largest=largest, explorer_page=f'/explorer/{fname}/')

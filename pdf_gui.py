@@ -10,43 +10,49 @@ from pdf2image import convert_from_path
 import sys
 import os
 
-def get_page_images (fname):
-    images = convert_from_path (fname)
+def get_images_dir (fname):
     dir = fname[:-4] + "_images"
     abs = f"{os.getcwd()}/static/{dir}"
     try:
         os.mkdir(abs)
     except:
         pass
-    for i in range(len(images)):
-        images[i].save(abs+f"/{i}.png")
-    return dir
+    return (dir, abs)
+
+def get_page_image (fname, page_num, path):
+    image = convert_from_path (fname, first_page=page_num+1, last_page=page_num+1)[0]
+    image.save(path)
 
 def get_bboxes (fname, page_num):
     page = PdfFileReader(fname).pages[page_num]
     if '/XObject' in page['/Resources']:
         xobj_bbox = page['/Resources']['/XObject']['/BBox']
 
-def generate_two_col (fname):
+def generate_two_col (fname, page_num):
     env = Environment (
         loader=PackageLoader("pdf_gui"),
         trim_blocks=True
     )
     env.filters['commafy'] = lambda x: "{:,}".format(x)
-    template = env.get_template("two_col.html")
-    f = open(fname[:-4]+".html", "w+")
-    dir = get_page_images (fname)
-    abs = f"{os.getcwd()}/static/{dir}"
-    image_dict = {}
-    first_image = url_for('static', filename=(dir + "/0.png"))
+    template = env.get_template("single_page.html")
+    #if os.path.exists() TODO: ADD OS EXISTS CHECK SO WE DONT DO SAME WORK TWICE
+    dir, abs = get_images_dir(fname)
+    if not os.path.exists(abs+f"/{page_num}.png"):
+        get_page_image (fname, page_num, abs+f"/{page_num}.png")
+    page_img = url_for('static', filename=(dir + f"/{page_num}.png"))
     reader = PdfFileReader(fname)
-    for i, filename in enumerate(os.listdir(abs)):
-        if (os.path.isdir(abs + "/" + filename)):
-            continue
-        page_num = int(filename.split(".")[0])
-        image_dict[page_num] = build_page_images_dict(reader.pages[page_num], page_num, abs)
-    treeview = [build_tree_list(reader.pages[i], 1, "") for i in range(len(reader.pages))]
-    print (len(image_dict))
-    return template.render(image_dict=image_dict, first_image=first_image, image_dir=f'/static/{dir}', treeview=treeview)
+    image_dict = build_page_images_dict(reader.pages[page_num], page_num, abs)
+    print(image_dict)
+    treeview = build_tree_list(reader.pages[page_num], 1, "")
+    left_arrow = url_for('explorer', doc_id=fname, page_num=(page_num - 1 if page_num != 0 else len(reader.pages) - 1))
+    right_arrow = url_for('explorer', doc_id=fname, page_num=(page_num + 1 if page_num != len(reader.pages) - 1 else 0))
+    return template.render(
+        image_dict=image_dict, 
+        page_img=page_img, 
+        image_dir=f'/static/{dir}', 
+        treeview=treeview, 
+        left_arrow=left_arrow, 
+        right_arrow=right_arrow
+    )
 
 #generate_two_col(sys.argv[1])

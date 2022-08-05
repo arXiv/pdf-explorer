@@ -17,13 +17,17 @@
                 {% if size > 0 %}
                 <tr>
                     <th scope="row">Page {{ page_num + 1 }} </th>
-                    <td style="--size: {{ size }};padding-right:10px;">{{(size * largest)|round|int|commafy}} bytes </td>
+                    <td style="--size: {{ size }};padding-right:10px;">{{(size * largest)|round|int|commafy}} bytes
+                        <form method="GET" action={{explorer_page+(page_num|string)}} style="padding-right: 10px; padding-left: 10px;">
+                            <button type="submit">Go To</button>
+                        </form>
+                    </td>
                 </tr>
                 {% endif %}
                 {% endfor %}
             </tbody>
         </table>
-        <form action={{explorer_page}} method ="GET">
+        <form action={{explorer_page+(0|string)}} method="GET">
             <input type="submit" value="Explorer">
          </form>   
     </body>

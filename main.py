@@ -25,11 +25,11 @@ def file_uploader ():
 
 @app.route('/summary/<string:doc_id>')
 def summary_page (doc_id):
-    return build_summary_page(doc_id, url_for('explorer', doc_id=doc_id))
+    return build_summary_page(doc_id, url_for('explorer', doc_id=doc_id, page_num=0))
 
-@app.route('/explorer/<string:doc_id>')
-def explorer (doc_id):
-    return generate_two_col(doc_id)
+@app.route('/explorer/<string:doc_id>/<int:page_num>')
+def explorer (doc_id, page_num):
+    return generate_two_col(doc_id, page_num)
 
 if __name__== '__main__':
     app.run(debug=True, host='0.0.0.0')
