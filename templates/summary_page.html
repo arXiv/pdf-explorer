@@ -13,7 +13,7 @@
     <body>
         <table class="charts-css bar show-4-secondary-axes show-labels" id="page-chart">
             <tbody>
-                {% for page_num, size in page_sizes.items() %}
+                {% for page_num, size in page_sizes.items()|sort(true, attribute='1') %}
                 {% if size > 0 %}
                 <tr>
                     <th scope="row">Page {{ page_num + 1 }} </th>
