@@ -11,17 +11,28 @@
         </style>
     </head>
     <body>
-        <table class="charts-css bar show-4-secondary-axes show-labels" id="page-chart">
+        <div>File Size: {{fsize|commafy}} bytes</div><br>
+        <div>Total words: {{num_words|commafy}}</div><br>
+        <div>Average Words Per Page: {{avg_words}}</div><br>
+        <div>File Size / Words: {{fsize / num_words}}</div><br>
+        <table class="charts-css bar show-4-secondary-axes show-labels show-heading" id="page-chart">
+            <caption><b>Pages With the Largest Images:</b></caption>
             <tbody>
-                {% for page_num, size in page_sizes.items()|sort(true, attribute='1') %}
-                {% if size > 0 %}
+                {% for page_num, imgs in page_sizes.items()|sort(true, attribute='1.0') %}
+                {% if imgs[0] > 0 %}
                 <tr>
                     <th scope="row">Page {{ page_num + 1 }} </th>
-                    <td style="--size: {{ size }};padding-right:10px;">{{(size * largest)|round|int|commafy}} bytes
+                    {%for img in imgs %}
+                    {%if loop.index0 == 0 %}
+                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes
                         <form method="GET" action={{explorer_page+(page_num|string)}} style="padding-right: 10px; padding-left: 10px;">
                             <button type="submit">Go To</button>
                         </form>
                     </td>
+                    {% else %}
+                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes</td>
+                    {% endif %}
+                    {% endfor %}
                 </tr>
                 {% endif %}
                 {% endfor %}

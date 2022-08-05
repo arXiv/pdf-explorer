@@ -35,7 +35,6 @@ def generate_two_col (fname, page_num):
     )
     env.filters['commafy'] = lambda x: "{:,}".format(x)
     template = env.get_template("single_page.html")
-    #if os.path.exists() TODO: ADD OS EXISTS CHECK SO WE DONT DO SAME WORK TWICE
     dir, abs = get_images_dir(fname)
     if not os.path.exists(abs+f"/{page_num}.png"):
         get_page_image (fname, page_num, abs+f"/{page_num}.png")
