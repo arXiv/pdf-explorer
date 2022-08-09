@@ -7,39 +7,59 @@
                 max-width: 100%;
                 height: {{50 * page_sizes|length}}px;
                 margin: 0 auto;
-            }              
+            }
+            
+            .go-to-button {
+                all: unset;
+                cursor: pointer;
+            }
         </style>
     </head>
     <body>
-        <div>File Size: {{fsize|commafy}} bytes</div><br>
-        <div>Total words: {{num_words|commafy}}</div><br>
-        <div>Average Words Per Page: {{avg_words}}</div><br>
-        <div>File Size / Words: {{fsize / num_words}}</div><br>
-        <table class="charts-css bar show-4-secondary-axes show-labels show-heading" id="page-chart">
-            <caption><b>Pages With the Largest Images:</b></caption>
-            <tbody>
-                {% for page_num, imgs in page_sizes.items()|sort(true, attribute='1.0') %}
-                {% if imgs[0] > 0 %}
-                <tr>
-                    <th scope="row">Page {{ page_num + 1 }} </th>
+        {% if fsize > 50000000 %}
+        <div>Your file is too big! The maximum size is 50,000 kB, yours is {{(fsize/1000)|round|int|commafy}} kB
+            <span style="color:red">&#9632;</span>
+        </div><br>
+        <br>
+        <caption><b>Pages With Large Images:</b></caption>
+        <br>
+        <ul>
+            {% for page_num, imgs in page_sizes.items()|sort(true, attribute='1.0') %}
+            {% if imgs[0]*largest > 700000 %}
+            <li>
+                <form method="GET" action={{explorer_page+(page_num|string)}} style="padding-right: 10px; padding-left: 10px;">
+                    <button class="go-to-button" type="submit">Page {{ page_num + 1 }}</button>
+                </form>
+                <ul>
                     {%for img in imgs %}
-                    {%if loop.index0 == 0 %}
-                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes
-                        <form method="GET" action={{explorer_page+(page_num|string)}} style="padding-right: 10px; padding-left: 10px;">
-                            <button type="submit">Go To</button>
-                        </form>
-                    </td>
-                    {% else %}
-                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes</td>
+                    {% if img*largest > 700000 %}
+                    <li>{{(img * largest / 1000)|round|int|commafy}} kB
+                        {% if img * largest > 1000000 %}
+                        <span style="color:orange">&#9632;</span>
+                        {% elif img * largest > 700000 %}
+                        <span style="color:yellow">&#9632;</span>
+                        {% else %}
+                        <span style="color:green">&#9632;</span>
+                        {% endif %}
+                    </li>
                     {% endif %}
                     {% endfor %}
-                </tr>
-                {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
+                </ul>
+            </li>
+            {% endif %}
+            {% endfor %}
+        </ul>
         <form action={{explorer_page+(0|string)}} method="GET">
             <input type="submit" value="Explorer">
-         </form>   
+        </form>
+        {% elif num_words < 100 or fsize/num_words > 2000 %}
+        <div>It seems like your pages may be rendering as images, please make sure that your pdf is constructed properly
+            <span style="color:red">&#9632;</span>
+        </div>         
+        {% else %}
+        <div>Your PDF looks good! Try submitting it!
+            <span style="color:green">&#9632;</span>
+        </div>
+        {% endif %}
     </body>
 </html>
