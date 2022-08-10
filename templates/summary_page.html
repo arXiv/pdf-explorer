@@ -16,8 +16,8 @@
         </style>
     </head>
     <body>
-        {% if fsize > 50000000 %}
-        <div>Your file is too big! The maximum size is 50,000 kB, yours is {{(fsize/1000)|round|int|commafy}} kB
+        {% if fsize > 1 %}
+        <div>This file exceeds the maximum size limit. The maximum size is 50,000 kB, your file is {{(fsize/1000)|round|int|commafy}} kB
             <span style="color:red">&#9632;</span>
         </div><br>
         <br>
@@ -53,7 +53,7 @@
             <input type="submit" value="Explorer">
         </form>
         {% elif num_words < 100 or fsize/num_words > 2000 %}
-        <div>It seems like your pages may be rendering as images, please make sure that your pdf is constructed properly
+        <div><b>Warning:</b> It seems like your pages may be rendering as images, please make sure that your pdf is constructed properly
             <span style="color:red">&#9632;</span>
         </div>         
         {% else %}

@@ -129,7 +129,7 @@
                             <img class="image" src="{{ image_data['location'] }}"/>
                             <!-- <span>Height: {{image_data['height'] | commafy}}</span>
                             <span>Width: {{image_data['width'] | commafy}}</span> -->
-                            <span>Size: {{(image_data['size']/1000)|commafy}} kB
+                            <span>Size: {{(image_data['size']/1000)|int|commafy}} kB
                                 {% if image_data['size'] > 1000000 %}
                                 <span>(High priority)</span>
                                 <span style="color:orange">&#9632;</span>
