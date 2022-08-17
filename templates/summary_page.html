@@ -16,7 +16,7 @@
         </style>
     </head>
     <body>
-        {% if fsize > 1 %}
+        {% if fsize > 50000000 %}
         <div>This file exceeds the maximum size limit. The maximum size is 50,000 kB, your file is {{(fsize/1000)|round|int|commafy}} kB
             <span style="color:red">&#9632;</span>
         </div><br>
