@@ -4,7 +4,9 @@ from PyPDF2.generic import *
 from ImageParser import build_page_images_dict
 from ImageParser import ImageObject
 from jinja2 import Environment, PackageLoader
+from FontInfo import FontInfo
 import os
+import subprocess
 
 def replace_indirect_objects (obj, reader):
     #print (f"{obj}, {type(obj)}")
@@ -86,6 +88,48 @@ def normalize_page_image_sizes (page_img_sizes):
             page_img_sizes[i].sort(reverse=True)
     return largest
 
+def get_pdfinfo (fname):
+    cmd = ["pdfinfo", fname]
+    completed_process = subprocess.run(cmd, capture_output=True)
+    output = completed_process.stdout.decode("utf-8")
+    output_list = output.split ("\n")
+    ret_dict = {}
+    for entry in output_list:
+        for i, c in enumerate(entry):
+            if c == ':':
+                key = entry[:i].strip()
+                val = entry[i+1:].strip()
+                if len(val):
+                    ret_dict[key] = val
+                else:
+                    ret_dict[key] = None
+                break
+    return ret_dict
+
+def get_pdffonts (fname):
+    cmd = ["pdffonts", fname]
+    completed_process = subprocess.run(cmd, capture_output=True)
+    output = completed_process.stdout.decode("utf-8")
+    lines = output.split ("\n")
+    part_lengths = list(map(lambda x: x.count('-'), lines[1].split()))
+    fonts = []
+    for line in lines[2:-1]:
+        parts = []
+        part_sum = 0
+        for part_num, part_length in enumerate(part_lengths):
+            if part_num == len(part_lengths) - 1:
+                obj, id = line[part_sum:part_sum+part_length].split()
+                parts.append(obj.strip())
+                parts.append(id.strip())
+            else:
+                parts.append(line[part_sum:part_sum+part_length].strip())
+                part_sum += part_length+1
+        fi = FontInfo (parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6], parts[7])
+        fonts.append(fi)
+    return fonts
+    
+
+
 def build_summary_page(fname, url):
     env = Environment (
         loader=PackageLoader("pdf_gui"),
@@ -101,12 +145,17 @@ def build_summary_page(fname, url):
     num_words = get_num_words(reader)
     fsize = get_doc_size(fname)
     avg_words = num_words / len(reader.pages)
-    print(page_img_lens)
+    pdf_metadata = get_pdfinfo (fname)
+    pdf_fonts = get_pdffonts(fname)
     return template.render(
         page_sizes=page_img_lens, 
         largest=largest, 
         explorer_page=f'/explorer/{fname}/',
         num_words=num_words,
         fsize=fsize,
-        avg_words=avg_words
+        avg_words=avg_words,
+        pdf_metadata=pdf_metadata,
+        fonts=pdf_fonts
     )
+
+get_pdffonts ('2207.07654.pdf')

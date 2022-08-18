@@ -4,42 +4,103 @@
         <link rel="stylesheet" href="/static/charts.min.css">
         <style>
             #page-chart.bar {
-                max-width: 100%;
-                height: {{50 * page_sizes|length}}px;
+                {% if (page_size|length) < 10 %}
+                height: {{(25 * page_sizes|length)}}px;
+                {% else %}
+                height: 250px;
+                {% endif %}
                 margin: 0 auto;
-            }              
+            }
+            .container {
+                display: flex;
+                flex-flow: row nowrap;
+                justify-content: space-around;
+                align-items: flex-start;
+            }
+            .explorer {
+                display: flex;
+                flex-flow: column nowrap;
+                justify-content: space-between;
+                align-items: center;
+                min-width: 40%;
+                {% if (page_size|length) < 10 %}
+                height: {{(25 * page_sizes|length)}}px;
+                {% else %}
+                height: 250px;
+                {% endif %}
+            }
         </style>
     </head>
     <body>
-        <div>File Size: {{fsize|commafy}} bytes</div><br>
+        <!-- <div>File Size: {{fsize|commafy}} bytes</div><br>
         <div>Total words: {{num_words|commafy}}</div><br>
         <div>Average Words Per Page: {{avg_words}}</div><br>
-        <div>File Size / Words: {{fsize / num_words}}</div><br>
-        <table class="charts-css bar show-4-secondary-axes show-labels show-heading" id="page-chart">
-            <caption><b>Pages With the Largest Images:</b></caption>
-            <tbody>
-                {% for page_num, imgs in page_sizes.items()|sort(true, attribute='1.0') %}
-                {% if imgs[0] > 0 %}
+        <div>File Size / Words: {{fsize / num_words}}</div><br> -->
+        <div class="container">
+            <table>
+                <caption><b>Metadata</b></caption>
+                {% for attribute, value in pdf_metadata.items() %}
                 <tr>
-                    <th scope="row">Page {{ page_num + 1 }} </th>
-                    {%for img in imgs %}
-                    {%if loop.index0 == 0 %}
-                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes
-                        <form method="GET" action={{explorer_page+(page_num|string)}} style="padding-right: 10px; padding-left: 10px;">
-                            <button type="submit">Go To</button>
-                        </form>
-                    </td>
+                    <td><b>{{attribute}}</b></td>
+                    {% if value %}
+                    <td>{{value}}</td>
                     {% else %}
-                    <td style="--size: {{ img }};padding-right:10px;">{{(img * largest)|round|int|commafy}} bytes</td>
+                    <td>None</td>
                     {% endif %}
-                    {% endfor %}
                 </tr>
-                {% endif %}
                 {% endfor %}
-            </tbody>
-        </table>
-        <form action={{explorer_page+(0|string)}} method="GET">
-            <input type="submit" value="Explorer">
-         </form>   
+            </table>
+            <div class="explorer">
+                <table class="charts-css bar show-4-secondary-axes show-labels show-heading" id="page-chart">
+                    <caption><b>Pages With the Largest Images:</b></caption>
+                    <tbody>
+                        {% for page_num, imgs in (page_sizes.items()|sort(true, attribute='1.0'))[:10] %}
+                        {% if imgs[0] > 0 %}
+                        <tr>
+                            <th scope="row">Page {{ page_num + 1 }} </th>
+                            {%for img in imgs %}
+                            {%if loop.index0 == 0 %}
+                            <td style="--size: {{ img }};padding-right:10px;">{{(img * largest / 1000)|round|int|commafy}} kB
+                                
+                            </td>
+                            {% else %}
+                            <td style="--size: {{ img }};padding-right:10px;">{{(img * largest / 1000)|round|int|commafy}} kB</td>
+                            {% endif %}
+                            {% endfor %}
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <form action={{explorer_page+(0|string)}} method="GET">
+                    <input type="submit" value="Explorer">
+                </form>
+            </div>
+            <table>
+                <caption><b>Fonts</b></caption>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Encoding</th>
+                    <th>Emb</th>
+                    <th>Sub</th>
+                    <th>Uni</th>
+                    <th>Object</th>
+                    <th>Id</th>
+                </tr>
+                {% for font in fonts %}
+                <tr>
+                    <td>{{font.name}}</td>
+                    <td>{{font.type}}</td>
+                    <td>{{font.encoding}}</td>
+                    <td>{{font.emb}}</td>
+                    <td>{{font.sub}}</td>
+                    <td>{{font.uni}}</td>
+                    <td>{{font.object}}</td>
+                    <td>{{font.id}}</td>
+                </tr>
+                {% endfor %}
+            </ul>
+        </div>
     </body>
 </html>
